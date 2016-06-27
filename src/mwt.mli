@@ -27,4 +27,8 @@ module Pool : sig
   val run_in_main : (unit -> 'a Lwt.t) -> 'a
   (** [run_in_main f x] can be used to run [f x] in the program's main
       thread. *)
+
+  val close : t -> unit
+  (** [close pool] will close all the threads in [pool].  Any further uses of
+      [pool] will raise [Invalid_argument]. *)
 end

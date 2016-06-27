@@ -58,10 +58,8 @@ let detach ?init ?at_exit f x =
     (fun () -> Thread.join thread; Lwt.return_unit)
 
 module Pool = struct
-  exception Dispose
-
   type worker = {
-    task_channel: (int * (unit -> unit)) Event.channel;
+    task_channel: [ `Task of (int * (unit -> unit)) | `Quit ] Event.channel;
     (* Channel used to communicate notification id and tasks to the
        worker thread. *)
 
@@ -69,6 +67,7 @@ module Pool = struct
     pool : t; (* The worker's parent thread pool *)
   }
   and t = {
+    mutable closed : bool; (* Has the pool been closed? *)
     num_threads : int; (* Number of preemptive threads in the pool *)
     workers : worker Queue.t; (* Queue of worker threads *)
     waiters : worker Lwt.u Lwt_sequence.t; (* Queue of clients waiting for a
@@ -80,13 +79,13 @@ module Pool = struct
     maybe_do init ();
     let continue = ref true in
     while !continue do
-      let id, task = Event.sync (Event.receive worker.task_channel) in
-      try
+      match Event.sync (Event.receive worker.task_channel) with
+      | `Task (id, task) ->
         task ();
         (* Tell the main thread that work is done: *)
         Lwt_unix.send_notification id
-      with
-      | Dispose -> continue := false
+      | `Quit ->
+        continue := false
     done;
     maybe_do at_exit ()
 
@@ -118,14 +117,20 @@ module Pool = struct
       Lwt.add_task_r pool.waiters
 
   let detach pool f args =
+    begin
+      if pool.closed then
+        Lwt.fail_invalid_arg "Mwt.Pool.detach"
+      else
+        Lwt.return_unit
+    end >>= fun () ->
     let result = ref (Lwt.make_error (Failure "Mwt.detach")) in
     (* The task for the worker thread: *)
     let task () =
       try
         result := Lwt.make_value (f args)
       with
-      | Dispose -> raise Dispose
-      | exn -> result := Lwt.make_error exn
+      | exn ->
+        result := Lwt.make_error exn
     in
     get_worker pool >>= fun worker ->
     let waiter, wakener = Lwt.wait () in
@@ -136,29 +141,28 @@ module Pool = struct
     Lwt.finalize
       (fun () ->
          (* Send the id and the task to the worker: *)
-         Event.sync (Event.send worker.task_channel (id, task));
+         Event.sync (Event.send worker.task_channel (`Task (id, task)));
          waiter)
       (fun () ->
          add_worker pool worker;
          Lwt.return_unit)
 
-  let cleanup pool =
-    let rec loop remaining =
-      if remaining <= 0 then
-        Lwt.return_unit
-      else
-        detach pool raise Dispose >>= fun () -> loop (pred remaining)
-    in
-    loop pool.num_threads
+  let close pool =
+    Queue.iter (
+      fun worker ->
+        Event.sync (Event.send worker.task_channel `Quit);
+    ) pool.workers;
+    pool.closed <- true
 
   let make ?init ?at_exit num_threads =
     let pool =
-      { num_threads; workers = Queue.create (); waiters = Lwt_sequence.create () }
+      { num_threads;
+        workers = Queue.create (); waiters = Lwt_sequence.create ();
+        closed = false }
     in
     for _i = 1 to num_threads do
       Queue.add (make_worker ?init ?at_exit pool) pool.workers
     done;
-    Lwt_gc.finalise cleanup pool;
     pool
 
   (* +-----------------------------------------------------------------+
