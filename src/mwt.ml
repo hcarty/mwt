@@ -34,7 +34,7 @@ let run ?init ?at_exit f x =
     Lwt_unix.make_notification ~once:true
       (fun () -> Lwt.wakeup_result wakener !result)
   in
-  let t =
+  let thread =
     Thread.create (
       fun x ->
         let res =
@@ -52,13 +52,16 @@ let run ?init ?at_exit f x =
         Lwt_unix.send_notification id
     ) x
   in
+  (* Keep a reference to the preemptive around for the lifetime of waiter *)
   Lwt.finalize
     (fun () -> waiter)
-    (fun () -> Thread.join t; Lwt.return_unit)
+    (fun () -> Thread.join thread; Lwt.return_unit)
 
 module Pool = struct
+  exception Dispose
+
   type worker = {
-    task_channel: (int * (unit -> unit)) option Event.channel;
+    task_channel: (int * (unit -> unit)) Event.channel;
     (* Channel used to communicate notification id and tasks to the
        worker thread. *)
 
@@ -77,12 +80,13 @@ module Pool = struct
     maybe_do init ();
     let continue = ref true in
     while !continue do
-      match Event.sync (Event.receive worker.task_channel) with
-      | Some (id, task) ->
+      let id, task = Event.sync (Event.receive worker.task_channel) in
+      try
         task ();
         (* Tell the main thread that work is done: *)
         Lwt_unix.send_notification id
-      | None -> continue := false
+      with
+      | Dispose -> continue := false
     done;
     maybe_do at_exit ()
 
@@ -119,8 +123,9 @@ module Pool = struct
     let task () =
       try
         result := Lwt.make_value (f args)
-      with exn ->
-        result := Lwt.make_error exn
+      with
+      | Dispose -> raise Dispose
+      | exn -> result := Lwt.make_error exn
     in
     get_worker pool >>= fun worker ->
     let waiter, wakener = Lwt.wait () in
@@ -131,7 +136,7 @@ module Pool = struct
     Lwt.finalize
       (fun () ->
          (* Send the id and the task to the worker: *)
-         Event.sync (Event.send worker.task_channel (Some (id, task)));
+         Event.sync (Event.send worker.task_channel (id, task));
          waiter)
       (fun () ->
          add_worker pool worker;
@@ -139,10 +144,12 @@ module Pool = struct
 
   let cleanup pool =
     let rec loop remaining =
-      if remaining <= 0 then Lwt.return_unit
-      else detach pool Thread.exit () >>= fun () -> loop (pred remaining)
+      if remaining <= 0 then
+        Lwt.return_unit
+      else
+        detach pool raise Dispose >>= fun () -> loop (pred remaining)
     in
-    Lwt_gc.finalise loop pool.num_threads
+    loop pool.num_threads
 
   let make ?init ?at_exit num_threads =
     let pool =
@@ -151,7 +158,7 @@ module Pool = struct
     for _i = 1 to num_threads do
       Queue.add (make_worker ?init ?at_exit pool) pool.workers
     done;
-    Gc.finalise cleanup pool;
+    Lwt_gc.finalise cleanup pool;
     pool
 
   (* +-----------------------------------------------------------------+
