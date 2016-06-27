@@ -27,7 +27,7 @@ let maybe_do o x =
   | None -> ()
   | Some f -> f x
 
-let run ?init ?at_exit f x =
+let detach ?init ?at_exit f x =
   let result = ref (Lwt.make_error (Failure "Mwt.run")) in
   let waiter, wakener = Lwt.wait () in
   let id =

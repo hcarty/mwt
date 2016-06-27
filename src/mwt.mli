@@ -1,10 +1,10 @@
 (** {1 Preemptive threads in Lwt sauce} *)
 
-val run :
+val detach :
   ?init:(unit -> unit) ->
   ?at_exit:(unit -> unit) ->
   ('a -> 'b) -> 'a -> 'b Lwt.t
-(** [run f x] will run [f x] in a freshly created preemptive thread.  The
+(** [detach f x] will run [f x] in a freshly created preemptive thread.  The
     preemptive thread will end when [f x] returns. *)
 
 module Pool : sig
