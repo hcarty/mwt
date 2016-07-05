@@ -27,7 +27,7 @@ let maybe_do o x =
   | None -> ()
   | Some f -> f x
 
-let detach ?init ?at_exit f x =
+let detach ?init ?at_exit f =
   let result = ref (Lwt.make_error (Failure "Mwt.run")) in
   let waiter, wakener = Lwt.wait () in
   let id =
@@ -36,11 +36,11 @@ let detach ?init ?at_exit f x =
   in
   let thread =
     Thread.create (
-      fun x ->
+      fun () ->
         let res =
           try
             maybe_do init ();
-            let v = Lwt.make_value (f x) in
+            let v = Lwt.make_value (f ()) in
             maybe_do at_exit ();
             v
           with exn ->
@@ -50,7 +50,7 @@ let detach ?init ?at_exit f x =
         in
         result := res;
         Lwt_unix.send_notification id
-    ) x
+    ) ()
   in
   (* Keep a reference to the preemptive around for the lifetime of waiter *)
   Lwt.finalize
@@ -116,7 +116,7 @@ module Pool = struct
     else
       Lwt.add_task_r pool.waiters
 
-  let detach pool f args =
+  let detach pool f =
     begin
       if pool.closed then
         Lwt.fail_invalid_arg "Mwt.Pool.detach"
@@ -127,7 +127,7 @@ module Pool = struct
     (* The task for the worker thread: *)
     let task () =
       try
-        result := Lwt.make_value (f args)
+        result := Lwt.make_value (f ())
       with
       | exn ->
         result := Lwt.make_error exn
