@@ -1,6 +1,4 @@
 opam-version: "1.2"
-name: "mwt"
-version: "0.0.0"
 maintainer: "Hezekiah Carty <hez@0ok.org>"
 authors: [ "Jérôme Vouillon"
            "Vincent Balat"
@@ -22,28 +20,13 @@ license: "LGPL-2.1 with OCaml linking exception"
 homepage: "https://github.com/hcarty/mwt"
 dev-repo: "https://github.com/hcarty/mwt.git"
 bug-reports: "https://github.com/hcarty/mwt/issues"
-build: [
-  ["oasis" "setup"]
-  ["ocaml" "setup.ml" "-configure" "--prefix" prefix]
-  ["ocaml" "setup.ml" "-build"]
-]
-install: ["ocaml" "setup.ml" "-install"]
-remove: [
-  ["ocamlfind" "remove" "mwt"]
-]
-build-test: [
-  ["oasis" "setup"]
-  ["ocaml" "setup.ml" "-configure" "--enable-tests"]
-  ["ocaml" "setup.ml" "-build"]
-  ["ocaml" "setup.ml" "-test"]
-]
+build: ["jbuilder" "build" "-p" name "-j" jobs]
+build-test: ["jbuilder" "runtest" "-p" name]
+build-doc: [ "jbuilder" "build" "@doc" "-p" name]
 depends: [
-  "base-bytes"
   "base-threads"
+  "base-unix"
+  "jbuilder" {build}
   "lwt"
-  "oasis" {build & >= "0.4"}
-  "ocamlbuild" {build}
-  "ocamlfind" {build & >= "1.5"}
-  "result"
 ]
-available: [ ocaml-version >= "4.01" ]
+available: [ ocaml-version >= "4.03.0" ]
