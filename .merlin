@@ -1,3 +1,0 @@
-PKG threads.posix lwt
-S src/
-B _build/src/

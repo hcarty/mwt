@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(library
+ ((name mwt)
+  (public_name mwt)
+  (preprocess (pps (lwt_ppx)))
+  (libraries (lwt.unix))))
