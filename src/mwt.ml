@@ -113,7 +113,7 @@ module Pool = struct
 
 
   (* Wait for worker to be available, then return it: *)
-  let rec get_worker pool =
+  let get_worker pool =
     if not (Queue.is_empty pool.workers) then
       Lwt.return (Queue.take pool.workers)
     else ( Lwt.add_task_r pool.waiters [@ocaml.warning "-3"] )
