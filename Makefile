@@ -1,30 +1,30 @@
 .PHONY: all test benchmark doc repl clean gh-pages
 
 all:
-	jbuilder build
+	dune build
 
 test:
-	jbuilder runtest
+	dune runtest
 
 benchmark:
-	jbuilder build benchmark/bench.exe
+	dune build benchmark/bench.exe
 	_build/default/benchmark/bench.exe
 
 doc:
-	jbuilder build @doc
+	dune build @doc
 
 repl:
-	jbuilder utop src
+	dune utop src
 
 clean:
-	jbuilder clean
+	dune clean
 
 gh-pages: doc
 	git clone `git config --get remote.origin.url` .gh-pages --reference .
 	git -C .gh-pages checkout --orphan gh-pages
 	git -C .gh-pages reset
 	git -C .gh-pages clean -dxf
-	cp  -r _build/default/_doc/* .gh-pages
+	cp  -r _build/default/_doc/_html/* .gh-pages
 	git -C .gh-pages add .
 	git -C .gh-pages config user.email 'docs@project'
 	git -C .gh-pages commit -m "Update Pages"
