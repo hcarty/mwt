@@ -26,7 +26,7 @@ build-doc: [ "jbuilder" "build" "@doc" "-p" name]
 depends: [
   "base-threads"
   "base-unix"
-  "jbuilder" {build}
+  "dune" {build}
   "lwt"
 ]
 available: [ ocaml-version >= "4.03.0" ]
