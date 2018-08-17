@@ -16,13 +16,13 @@ authors: [ "Jérôme Vouillon"
            "Vincent Bernardoff"
            "Romain Slootmaekers"
            "Hezekiah Carty" ]
-license: "LGPL-2.1 with OCaml linking exception"
+license: "MIT"
 homepage: "https://github.com/hcarty/mwt"
 dev-repo: "https://github.com/hcarty/mwt.git"
 bug-reports: "https://github.com/hcarty/mwt/issues"
-build: ["jbuilder" "build" "-p" name "-j" jobs]
-build-test: ["jbuilder" "runtest" "-p" name]
-build-doc: [ "jbuilder" "build" "@doc" "-p" name]
+build: ["dune" "build" "-p" name "-j" jobs]
+build-test: ["dune" "runtest" "-p" name]
+build-doc: [ "dune" "build" "@doc" "-p" name]
 depends: [
   "base-threads"
   "base-unix"

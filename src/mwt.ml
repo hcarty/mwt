@@ -1,24 +1,4 @@
-(* Mwt, derived from the Lwt project's lwt_preemptive.ml
- * Copyright (C) 2005 Nataliya Guts, Vincent Balat, Jérôme Vouillon
- * Laboratoire PPS - CNRS Université Paris Diderot
- *               2009 Jérémie Dimino
- *               2016 Hezekiah Carty (Mwt modifications of Lwt_preemptive)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, with linking exceptions;
- * either version 2.1 of the License, or (at your option) any later version.
- * See COPYING file for details.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
-*)
+(* Mwt, derived from the Lwt project's lwt_preemptive.ml *)
 
 open Lwt.Infix
 
@@ -58,25 +38,24 @@ let detach ?init ?at_exit f =
     (fun () -> waiter)
     (fun () -> Thread.join thread ; Lwt.return_unit)
 
-
 module Pool = struct
   type worker =
     { task_channel: [`Task of int * (unit -> unit) | `Quit] Event.channel
     ; (* Channel used to communicate notification id and tasks to the
        worker thread. *)
-    mutable thread: Thread.t
+      mutable thread: Thread.t
     ; (* The worker thread. *)
-    pool: t
+      pool: t
     (* The worker's parent thread pool *) }
 
   and t =
     { mutable closed: bool
     ; (* Has the pool been closed? *)
-    num_threads: int
+      num_threads: int
     ; (* Number of preemptive threads in the pool *)
-    workers: worker Queue.t
+      workers: worker Queue.t
     ; (* Queue of worker threads *)
-    waiters: worker Lwt.u Lwt_sequence.t
+      waiters: worker Lwt.u Lwt_sequence.t
     (* Queue of clients waiting for a
                                               worker to be available *)
     }
@@ -95,7 +74,6 @@ module Pool = struct
     done ;
     maybe_do at_exit ()
 
-
   (* create a new worker: *)
   let make_worker ?init ?at_exit pool =
     let worker =
@@ -104,20 +82,17 @@ module Pool = struct
     worker.thread <- Thread.create (worker_loop ?init ?at_exit) worker ;
     worker
 
-
   (* Add a worker to the pool *)
   let add_worker pool worker =
     match Lwt_sequence.take_opt_l pool.waiters with
     | None -> Queue.add worker pool.workers
     | Some w -> Lwt.wakeup w worker
 
-
   (* Wait for worker to be available, then return it: *)
   let get_worker pool =
     if not (Queue.is_empty pool.workers) then
       Lwt.return (Queue.take pool.workers)
     else ( Lwt.add_task_r pool.waiters [@ocaml.warning "-3"] )
-
 
   let detach pool f =
     ( if pool.closed then Lwt.fail_invalid_arg "Mwt.Pool.detach"
@@ -140,13 +115,11 @@ module Pool = struct
         waiter )
       (fun () -> add_worker pool worker ; Lwt.return_unit)
 
-
   let close pool =
     Queue.iter
       (fun worker -> Event.sync (Event.send worker.task_channel `Quit))
       pool.workers ;
     pool.closed <- true
-
 
   let make ?init ?at_exit num_threads =
     let pool =
@@ -159,7 +132,6 @@ module Pool = struct
       Queue.add (make_worker ?init ?at_exit pool) pool.workers
     done ;
     pool
-
 
   (* +-----------------------------------------------------------------+
      | Running Lwt threads in the main thread                          |
@@ -181,7 +153,6 @@ module Pool = struct
         let thunk = Queue.take jobs in
         Mutex.unlock jobs_mutex ;
         ignore (thunk ()) )
-
 
   let run_in_main f =
     let channel = Event.new_channel () in
