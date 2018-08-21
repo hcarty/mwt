@@ -147,6 +147,10 @@ module Pool = struct
     |> Lwt.join
 
   let make ~init ~at_exit num_threads =
+    if num_threads < 1 then
+      invalid_arg
+        (Format.asprintf "Mwt.Pool.make: number of threads is %d, must be >= 1"
+           num_threads) ;
     let pool =
       { num_threads
       ; init
