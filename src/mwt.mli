@@ -34,7 +34,9 @@ module Pool : sig
       Its return value defines the initial state of the newly initialized
       thread.
       @param at_exit is run within each thread in the pool immediately before
-      that thread exits.  Its argument is the state of the exiting thread. *)
+      that thread exits.  Its argument is the state of the exiting thread.
+
+      @raise Invalid_argument if [num_threads < 1]. *)
 
   val noop : unit -> unit
   (** [noop] may be passed to the [init] and [at_exit] parameters of {!make}
