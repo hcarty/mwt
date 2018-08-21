@@ -75,10 +75,7 @@ module Pool = struct
           (* Tell the main thread that work is done *)
           Lwt_unix.send_notification id
       | `Quit -> ()
-    done ;
-    worker.pool.at_exit state ;
-    (* Make sure everyone knows we're done *)
-    Lwt.wakeup worker.quit ()
+    done
 
   (* Create a new worker *)
   let make_worker pool =
