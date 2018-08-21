@@ -68,16 +68,13 @@ module Pool = struct
     let state = worker.pool.init () in
     [%defer worker.pool.at_exit state] ;
     [%defer Lwt.wakeup worker.quit ()] ;
-    let continue = ref true in
-    while !continue && not worker.pool.closed do
+    while not worker.pool.closed do
       match Event.sync (Event.receive worker.task_channel) with
       | `Task (id, task) ->
           task state ;
-          (* Tell the main thread that work is done: *)
-          Lwt_unix.send_notification id ;
-          (* If the pool has been closed there is no need to continue *)
-          continue := worker.pool.closed
-      | `Quit -> continue := false
+          (* Tell the main thread that work is done *)
+          Lwt_unix.send_notification id
+      | `Quit -> ()
     done ;
     worker.pool.at_exit state ;
     (* Make sure everyone knows we're done *)
