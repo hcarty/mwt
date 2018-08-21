@@ -43,7 +43,7 @@ module Pool = struct
     ; (* The worker's parent thread pool *)
       pool: 'state t
     ; (* Wake this up when the worker quits *)
-      quit: unit Lwt.u
+      quit: int
     ; (* This will resolve once the worker quits *)
       complete: unit Lwt.t }
 
@@ -66,7 +66,7 @@ module Pool = struct
   (* Code executed by a worker *)
   let worker_loop worker =
     let state = worker.pool.init () in
-    [%defer Lwt.wakeup worker.quit ()] ;
+    [%defer Lwt_unix.send_notification worker.quit] ;
     [%defer worker.pool.at_exit state] ;
     while not worker.pool.closed do
       match Event.sync (Event.receive worker.task_channel) with
@@ -80,7 +80,10 @@ module Pool = struct
   (* Create a new worker *)
   let make_worker pool =
     let worker =
-      let complete, quit = Lwt.wait () in
+      let complete, waiter = Lwt.wait () in
+      let quit =
+        Lwt_unix.make_notification ~once:true (fun () -> Lwt.wakeup waiter ())
+      in
       { task_channel= Event.new_channel ()
       ; thread= Thread.self ()
       ; pool
