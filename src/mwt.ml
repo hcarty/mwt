@@ -1,7 +1,7 @@
 (* Mwt, originally derived from the Lwt project's lwt_preemptive.ml *)
 (* Detach a single operation into a one-off preemptive thread *)
 let detach f =
-  let result = ref (Error (Failure "Mwt.run")) in
+  let result = ref (Error (Failure "Mwt.detach")) in
   (* Setup communication between our new thread and Lwt *)
   let waiter, wakener = Lwt.wait () in
   let id =
@@ -110,7 +110,7 @@ module Pool = struct
       if pool.closed then Lwt.fail_invalid_arg "Mwt.Pool.detach"
       else Lwt.return_unit
     in
-    let result = ref (Error (Failure "Mwt.detach")) in
+    let result = ref (Error (Failure "Mwt.Pool.detach")) in
     (* The task for the worker thread: *)
     let task state =
       try result := Ok (f state) with exn -> result := Error exn
