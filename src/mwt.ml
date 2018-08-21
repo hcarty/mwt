@@ -66,8 +66,8 @@ module Pool = struct
   (* Code executed by a worker *)
   let worker_loop worker =
     let state = worker.pool.init () in
-    [%defer worker.pool.at_exit state] ;
     [%defer Lwt.wakeup worker.quit ()] ;
+    [%defer worker.pool.at_exit state] ;
     while not worker.pool.closed do
       match Event.sync (Event.receive worker.task_channel) with
       | `Task (id, task) ->
