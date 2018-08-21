@@ -1,5 +1,4 @@
 (library
- (name mwt)
  (public_name mwt)
- (preprocess (pps lwt_ppx))
+ (preprocess (pps lwt_ppx ppx_defer))
  (libraries lwt.unix))

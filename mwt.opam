@@ -28,5 +28,6 @@ depends: [
   "base-unix"
   "dune" {build}
   "lwt"
+  "ppx_defer" {>= "0.3.0"}
 ]
 available: [ ocaml-version >= "4.03.0" ]
