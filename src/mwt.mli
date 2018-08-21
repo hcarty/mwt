@@ -3,7 +3,7 @@
     This module provides a way to call a function from Lwt and have that
     function in a separate OCaml preemptive thread. *)
 
-val detach : (unit -> 'result) -> 'result Lwt.t
+val detach : (unit -> 'a) -> 'a Lwt.t
 (** [detach f] will run [f ()] in a freshly created preemptive thread.  The
     preemptive thread will end when [f ()] returns. *)
 
