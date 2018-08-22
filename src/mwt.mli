@@ -64,4 +64,5 @@ val detach_thread : (unit -> 'a) -> 'a Lwt.t
 
 val run_in_main : (unit -> 'a Lwt.t) -> 'a
 (** [run_in_main f] can be used from within a preemptive thread to run [f ()]
-    in the program's main Lwt context. *)
+    in the program's main Lwt context.  It can be seen as a dual to {!detach}
+    and {!detach_thread}. *)
