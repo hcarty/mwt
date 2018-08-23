@@ -14,10 +14,14 @@
 (** Preemptive thread pool carrying some local state type *)
 type 'state t
 
-val make : init:(unit -> 'state) -> at_exit:('state -> unit) -> int -> 'state t
+val make :
+  init:(unit -> 'state) -> at_exit:('state -> unit) -> int -> 'state t Lwt.t
 (** [make ~init ~at_exit num_threads] creates a new pool of [num_threads]
     preemptive threads.  If no special per-thread state is required you can
-    pass {!noop} to [init] and [at_exit].
+    pass {!noop} to [init] and [at_exit].  The returned promise will resolve
+    once all [num_threads] calls to [init] have completed.  If any instance of
+    [init] raises an exception then the resulting promise will resolve to the
+    same exception.
 
     @param init is run from within each newly created thread in the pool.  Its
     return value defines the initial state of the newly initialized thread.

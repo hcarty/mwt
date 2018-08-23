@@ -38,18 +38,24 @@ and 'state t =
     all_workers: 'state worker Weak.t }
 
 (* Code executed by a worker *)
-let worker_loop worker =
-  let state = worker.pool.init () in
-  [%defer Lwt_unix.send_notification worker.quit] ;
-  [%defer worker.pool.at_exit state] ;
-  while not worker.pool.closed do
-    match Event.sync (Event.receive worker.task_channel) with
-    | `Task (id, task) ->
-        task state ;
-        (* Tell the main thread that work is done *)
-        Lwt_unix.send_notification id
-    | `Quit -> ()
-  done
+let worker_loop init_complete init_result worker =
+  match worker.pool.init () with
+  | exception exn ->
+      init_result := Error exn ;
+      Lwt_unix.send_notification init_complete
+  | state ->
+      init_result := Ok () ;
+      Lwt_unix.send_notification init_complete ;
+      [%defer Lwt_unix.send_notification worker.quit] ;
+      [%defer worker.pool.at_exit state] ;
+      while not worker.pool.closed do
+        match Event.sync (Event.receive worker.task_channel) with
+        | `Task (id, task) ->
+            task state ;
+            (* Tell the main thread that work is done *)
+            Lwt_unix.send_notification id
+        | `Quit -> ()
+      done
 
 (* Create a new worker *)
 let make_worker pool =
@@ -64,8 +70,14 @@ let make_worker pool =
     ; quit
     ; complete }
   in
-  worker.thread <- Thread.create worker_loop worker ;
-  worker
+  let ready, init_waiter = Lwt.wait () in
+  let init_result = ref (Error (Failure "Mwt.make")) in
+  let init_complete =
+    Lwt_unix.make_notification ~once:true (fun () ->
+        Lwt.wakeup_result init_waiter !init_result )
+  in
+  worker.thread <- Thread.create (worker_loop init_complete init_result) worker ;
+  (worker, ready)
 
 (* Add a worker to the pool *)
 let add_worker pool worker =
@@ -81,8 +93,7 @@ let get_worker pool =
 
 let detach pool f =
   let%lwt () =
-    if pool.closed then Lwt.fail_invalid_arg "Mwt.detach"
-    else Lwt.return_unit
+    if pool.closed then Lwt.fail_invalid_arg "Mwt.detach" else Lwt.return_unit
   in
   let result = ref (Error (Failure "Mwt.detach")) in
   (* The task for the worker thread: *)
@@ -134,14 +145,20 @@ let make ~init ~at_exit num_threads =
     ; closed= false
     ; all_workers= Weak.create num_threads }
   in
-  for _ = 1 to num_threads do Queue.add (make_worker pool) pool.workers done ;
+  let ready = ref [] in
+  for _ = 1 to num_threads do
+    let worker, init = make_worker pool in
+    ready := init :: !ready ;
+    Queue.add worker pool.workers
+  done ;
   let i = ref 0 in
   Queue.iter
     (fun worker ->
       Weak.set pool.all_workers !i (Some worker) ;
       incr i )
     pool.workers ;
-  pool
+  let%lwt () = Lwt.join !ready in
+  Lwt.return pool
 
 (* Detach a single operation into a one-off preemptive thread *)
 let detach_thread f =
