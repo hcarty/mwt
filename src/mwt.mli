@@ -37,8 +37,8 @@ val noop : unit -> unit
 
 (** {3 Using a thread pool} *)
 
-val detach : 'state t -> ('state -> 'a) -> 'a Lwt.t
-(** [detach pool f] will run [f state] in one of the preemptive threads in
+val run : 'state t -> ('state -> 'a) -> 'a Lwt.t
+(** [run pool f] will run [f state] in one of the preemptive threads in
     [pool], where [state] carries the state of the thread [f] runs under.  If
     there is a thread available in [pool] then the call will block until [f]
     completes.  If no thread is available from [pool] then the call to [f] will
@@ -58,20 +58,20 @@ val close_async : _ t -> unit
 
 (** {2 Single-use threads} *)
 
-val detach_thread : (unit -> 'a) -> 'a Lwt.t
-(** [detach_thread f] will run [f ()] in a freshly created preemptive thread.
+val run_thread : (unit -> 'a) -> 'a Lwt.t
+(** [run_thread f] will run [f ()] in a freshly created preemptive thread.
     The preemptive thread will end when [f ()] returns.
 
     There is no Mwt-imposed limit on the number of threads a program can spawn
-    at once with [detach_thread].  {!detach} and a thread pool created with
+    at once with [run_thread].  {!run} and a thread pool created with
     {!make} should be used when a limit on the number of live threads is
     required.
 
     [f] may use {!run_in_main} to run code in a program's Lwt context. *)
 
-(** {2 Calling back into Lwt from a detached thread} *)
+(** {2 Calling back into Lwt from a preemptive thread} *)
 
 val run_in_main : (unit -> 'a Lwt.t) -> 'a
 (** [run_in_main f] can be used from within a preemptive thread to run [f ()]
-    in the program's main Lwt context.  It can be seen as a dual to {!detach}
-    and {!detach_thread}. *)
+    in the program's main Lwt context.  It can be seen as a dual to {!run}
+    and {!run_thread}. *)
