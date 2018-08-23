@@ -91,11 +91,11 @@ let get_worker pool =
     Lwt.return (Queue.take pool.workers)
   else ( Lwt.add_task_r pool.waiters [@ocaml.warning "-3"] )
 
-let detach pool f =
+let run pool f =
   let%lwt () =
-    if pool.closed then Lwt.fail_invalid_arg "Mwt.detach" else Lwt.return_unit
+    if pool.closed then Lwt.fail_invalid_arg "Mwt.run" else Lwt.return_unit
   in
-  let result = ref (Error (Failure "Mwt.detach")) in
+  let result = ref (Error (Failure "Mwt.run")) in
   (* The task for the worker thread: *)
   let task state =
     try result := Ok (f state) with exn -> result := Error exn
@@ -161,8 +161,8 @@ let make ~init ~at_exit num_threads =
   Lwt.return pool
 
 (* Detach a single operation into a one-off preemptive thread *)
-let detach_thread f =
-  let result = ref (Error (Failure "Mwt.detach_thread")) in
+let run_thread f =
+  let result = ref (Error (Failure "Mwt.run_thread")) in
   (* Setup communication between our new thread and Lwt *)
   let waiter, wakener = Lwt.wait () in
   let id =
