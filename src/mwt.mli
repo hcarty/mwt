@@ -56,19 +56,6 @@ val close_async : _ t -> unit
     idle threads.  Any threads currently in use will quit once they are done
     with their current task.  This function does not block. *)
 
-(** {2 Single-use threads} *)
-
-val run_thread : (unit -> 'a) -> 'a Lwt.t
-(** [run_thread f] will run [f ()] in a freshly created preemptive thread.
-    The preemptive thread will end when [f ()] returns.
-
-    There is no Mwt-imposed limit on the number of threads a program can spawn
-    at once with [run_thread].  {!run} and a thread pool created with
-    {!make} should be used when a limit on the number of live threads is
-    required.
-
-    [f] may use {!run_in_main} to run code in a program's Lwt context. *)
-
 (** {2 Calling back into Lwt from a preemptive thread} *)
 
 val run_in_main : (unit -> 'a Lwt.t) -> 'a

@@ -160,32 +160,6 @@ let make ~init ~at_exit num_threads =
   let%lwt () = Lwt.join !ready in
   Lwt.return pool
 
-(* Detach a single operation into a one-off preemptive thread *)
-let run_thread f =
-  let result = ref (Error (Failure "Mwt.run_thread")) in
-  (* Setup communication between our new thread and Lwt *)
-  let waiter, wakener = Lwt.wait () in
-  let id =
-    Lwt_unix.make_notification ~once:true (fun () ->
-        Lwt.wakeup_result wakener !result )
-  in
-  (* Create a new thread *)
-  let thread =
-    Thread.create
-      (fun () ->
-        (* We need to watch for exceptions from the initialization function and
-           the actual task we want to run in our new thread *)
-        let res = match f () with v -> Ok v | exception exn -> Error exn in
-        (* Store our result and let Lwt know we're done here *)
-        result := res ;
-        Lwt_unix.send_notification id )
-      ()
-  in
-  (* Keep a reference to the preemptive around for the lifetime of waiter *)
-  Lwt.finalize
-    (fun () -> waiter)
-    (fun () -> Thread.join thread ; Lwt.return_unit)
-
 (* Calling back into the main thread *)
 (* Queue of [unit -> unit Lwt.t] functions. *)
 let jobs = Queue.create ()
