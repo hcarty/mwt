@@ -1,21 +1,6 @@
 opam-version: "1.2"
 maintainer: "Hezekiah Carty <hez@0ok.org>"
-authors: [ "Jérôme Vouillon"
-           "Vincent Balat"
-           "Nataliya Guts"
-           "Pierre Clairambault"
-           "Stéphane Glondu"
-           "Jérémie Dimino"
-           "Warren Harris"
-           "Pierre Chambart"
-           "Mauricio Fernandez"
-           "Grégoire Henri"
-           "Gabriel Radanne"
-           "Peter Zotov"
-           "Hugo Heuzard"
-           "Vincent Bernardoff"
-           "Romain Slootmaekers"
-           "Hezekiah Carty" ]
+authors: [ "Hezekiah M. Carty <hez@0ok.org>" ]
 license: "MIT"
 homepage: "https://github.com/hcarty/mwt"
 dev-repo: "https://github.com/hcarty/mwt.git"
@@ -27,7 +12,7 @@ depends: [
   "base-threads"
   "base-unix"
   "dune" {build}
-  "lwt"
-  "ppx_defer" {>= "0.3.0"}
+  "lwt" {>= "2.7.0"}
+  "lwt_ppx"
 ]
-available: [ ocaml-version >= "4.03.0" ]
+available: [ ocaml-version >= "4.02.3" ]

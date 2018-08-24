@@ -46,16 +46,21 @@ let worker_loop init_complete init_result worker =
   | state ->
       init_result := Ok () ;
       Lwt_unix.send_notification init_complete ;
-      [%defer Lwt_unix.send_notification worker.quit] ;
-      [%defer worker.pool.at_exit state] ;
-      while not worker.pool.closed do
-        match Event.sync (Event.receive worker.task_channel) with
-        | `Task (id, task) ->
-            task state ;
-            (* Tell the main thread that work is done *)
-            Lwt_unix.send_notification id
-        | `Quit -> ()
-      done
+      let finally () =
+        worker.pool.at_exit state ;
+        Lwt_unix.send_notification worker.quit
+      in
+      try
+        while not worker.pool.closed do
+          match Event.sync (Event.receive worker.task_channel) with
+          | `Task (id, task) ->
+              task state ;
+              (* Tell the main thread that work is done *)
+              Lwt_unix.send_notification id
+          | `Quit -> ()
+        done ;
+        finally ()
+      with exn -> finally () ; raise exn
 
 (* Create a new worker *)
 let make_worker pool =
