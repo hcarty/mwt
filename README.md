@@ -1,6 +1,6 @@
 # Mwt - Preemptive threads and thread pools for Lwt
 
-[![Build Status](https://travis-ci.org/hcarty/mwt.svg?branch=master)](https://travis-ci.org/hcarty/mwt)
+![CI checks](https://github.com/hcarty/mwt/workflows/CI%20checks/badge.svg)
 
 `Mwt` allows a Lwt promise to hand off tasks to OCaml's preemptive threads.
 
