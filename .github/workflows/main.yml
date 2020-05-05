@@ -1,0 +1,38 @@
+name: CI checks
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    name: Build and test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+        ocaml-version:
+          - 4.10.0 
+          - 4.09.0
+          - 4.08.1
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1.0.1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam pin add mwt.dev -n .
+      - run: opam depext -yt mwt
+      - run: opam install -t . --deps-only
+      - run: opam exec -- dune build
+      - run: opam exec -- dune runtest
