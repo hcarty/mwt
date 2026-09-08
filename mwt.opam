@@ -13,7 +13,7 @@ depends: [
   "base-threads"
   "base-unix"
   "dune" {build}
-  "lwt" {>= "2.7.0"}
+  "lwt" {>= "5.10"}
   "lwt_ppx"
 ]
 available: [ ocaml-version >= "4.03.0" ]
