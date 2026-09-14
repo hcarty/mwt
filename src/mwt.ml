@@ -11,13 +11,13 @@ let noop () = ()
 type 'state worker =
   { (* Channel used to communicate notification id and tasks to the worker
          thread. *)
-    task_channel: [`Task of int * ('state -> unit) | `Quit] Event.channel
+    task_channel: [`Task of Lwt_unix.notification * ('state -> unit) | `Quit] Event.channel
   ; (* The worker thread. *)
     mutable thread: Thread.t
   ; (* The worker's parent thread pool *)
     pool: 'state t
   ; (* Wake this up when the worker quits *)
-    quit: int
+    quit: Lwt_unix.notification
   ; (* This will resolve once the worker quits *)
     complete: unit Lwt.t }
 
